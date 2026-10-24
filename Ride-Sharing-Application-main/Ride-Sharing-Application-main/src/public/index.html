@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ride-Sharing Platform | Backend Simulator & Live Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="navbar">
+    <div class="logo">
+      <i class="fa-solid fa-car-side"></i>
+      <span>RideShare<strong>Engine</strong></span>
+      <span class="badge">College Project</span>
+    </div>
+    <div class="nav-links">
+      <a href="/api-docs" target="_blank" class="doc-btn"><i class="fa-solid fa-book"></i> Swagger API Docs</a>
+      <div id="socketStatus" class="socket-badge disconnected">
+        <i class="fa-solid fa-circle"></i> <span>Socket: Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Quick Info Hero -->
+  <div class="hero-strip">
+    <div class="container">
+      <h2>Scalable Real-Time Ride-Sharing Backend System</h2>
+      <p>Demonstrating Mapbox routing, dynamic surge pricing, Haversine nearest driver matching, WebSockets, Chart.js analytics & PDF/CSV reporting.</p>
+    </div>
+  </div>
+
+  <main class="container main-layout">
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav">
+      <button class="tab-btn active" data-tab="simulator"><i class="fa-solid fa-map-location-dot"></i> Ride Simulator</button>
+      <button class="tab-btn" data-tab="driver"><i class="fa-solid fa-id-card"></i> Driver Portal</button>
+      <button class="tab-btn" data-tab="analytics"><i class="fa-solid fa-chart-line"></i> Analytics & Trends</button>
+      <button class="tab-btn" data-tab="export"><i class="fa-solid fa-file-export"></i> Export Reports</button>
+    </nav>
+
+    <!-- TAB 1: RIDE SIMULATOR -->
+    <section id="simulator" class="tab-content active">
+      <div class="grid-2">
+        <!-- Booking Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-route"></i> Estimate & Book Ride</h3>
+            <span class="subtext">Rider Mode</span>
+          </div>
+
+          <div class="form-group">
+            <label>Pickup Location</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-location-dot start-pin"></i>
+              <input type="text" id="pickupAddr" value="Bandra Kurla Complex, Mumbai">
+            </div>
+            <div class="coords-row">
+              <input type="number" id="pickupLat" value="19.0657" step="0.0001">
+              <input type="number" id="pickupLng" value="72.8687" step="0.0001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Dropoff Destination</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-flag-checkered dest-pin"></i>
+              <input type="text" id="dropoffAddr" value="Chhatrapati Shivaji Maharaj Airport T2">
+            </div>
+            <div class="coords-row">
+              <input type="number" id="dropoffLat" value="19.0886" step="0.0001">
+              <input type="number" id="dropoffLng" value="72.8679" step="0.0001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Select Ride Tier</label>
+            <select id="rideType">
+              <option value="economy">Economy (Affordable Sedans & Hatchbacks)</option>
+              <option value="comfort">Comfort (Spacious, Top Rated Drivers)</option>
+              <option value="xl">XL (6 Seater SUVs)</option>
+            </select>
+          </div>
+
+          <div class="action-buttons">
+            <button id="btnEstimate" class="btn btn-secondary"><i class="fa-solid fa-calculator"></i> Get Fare Estimate</button>
+            <button id="btnBook" class="btn btn-primary"><i class="fa-solid fa-bolt"></i> Book Ride Now</button>
+          </div>
+        </div>
+
+        <!-- Live Status & Fare Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-receipt"></i> Real-time Ride Status</h3>
+            <span id="currentStatusBadge" class="status-pill idle">IDLE</span>
+          </div>
+
+          <div id="estimateResultBox" class="estimate-box">
+            <div class="metric-row">
+              <div><small>Estimated Distance</small><h4 id="estDist">-- km</h4></div>
+              <div><small>Estimated Time</small><h4 id="estDuration">-- min</h4></div>
+              <div><small>Surge Multiplier</small><h4 id="estSurge">1.0x</h4></div>
+              <div><small>Total Fare</small><h4 id="estTotalFare">₹ --</h4></div>
+            </div>
+            <div id="surgeNotice" class="surge-notice" style="display: none;"></div>
+          </div>
+
+          <div id="activeRideDetails" class="active-ride-box" style="display: none;">
+            <h4>Active Trip #<span id="activeTripId">-</span></h4>
+            <p><strong>Route:</strong> <span id="activeTripRoute">-</span></p>
+            <p><strong>Assigned Driver:</strong> <span id="activeTripDriver">Waiting for match...</span></p>
+            <div id="liveDriverCoords" class="tracking-pill">
+              <i class="fa-solid fa-satellite-dish"></i> Live Driver Location: <span id="driverGpsText">Detecting...</span>
+            </div>
+            <div class="ride-action-bar">
+              <button id="btnCancelActiveRide" class="btn btn-danger btn-sm">Cancel Ride</button>
+            </div>
+          </div>
+
+          <div class="live-console">
+            <div class="console-head"><i class="fa-solid fa-terminal"></i> Live WebSocket & API Activity Log</div>
+            <div id="liveLogs" class="console-body">
+              <div class="log-line info">[System] Application initialized. Ready to book rides.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DRIVER PORTAL -->
+    <section id="driver" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-car"></i> Driver Control Panel</h3>
+            <span id="driverStatusBadge" class="status-pill online">ONLINE</span>
+          </div>
+          <p>Simulate driver actions, toggle availability status, and transmit live GPS coordinates.</p>
+
+          <div class="form-group toggle-row">
+            <label>Duty Status</label>
+            <button id="btnToggleOnline" class="btn btn-outline"><i class="fa-solid fa-power-off"></i> Toggle Online / Offline</button>
+          </div>
+
+          <div class="form-group">
+            <label>Transmit Live Driver GPS Coordinates</label>
+            <div class="coords-row">
+              <input type="number" id="driverLat" value="19.0680" step="0.0005">
+              <input type="number" id="driverLng" value="72.8690" step="0.0005">
+            </div>
+            <button id="btnUpdateLocation" class="btn btn-secondary btn-sm" style="margin-top: 8px;">
+              <i class="fa-solid fa-location-arrow"></i> Broadcast GPS Update
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label>Quick Progress Trip Lifecycle</label>
+            <div class="action-buttons-wrap">
+              <button id="btnDriverAccept" class="btn btn-primary btn-sm"><i class="fa-solid fa-hand-holding-hand"></i> Accept Pending</button>
+              <button id="btnDriverArrived" class="btn btn-secondary btn-sm"><i class="fa-solid fa-bell"></i> Mark Arrived</button>
+              <button id="btnDriverStart" class="btn btn-secondary btn-sm"><i class="fa-solid fa-play"></i> Start Trip</button>
+              <button id="btnDriverComplete" class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i> Complete & Collect Fare</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-wallet"></i> Driver Earnings & Ratings</h3>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <small>Today's Payout</small>
+              <h3 id="driverTodayEarnings">₹ 1,420</h3>
+            </div>
+            <div class="stat-card">
+              <small>Completed Trips</small>
+              <h3 id="driverCompletedTrips">8</h3>
+            </div>
+            <div class="stat-card">
+              <small>Driver Rating</small>
+              <h3 id="driverRating">4.9 ★</h3>
+            </div>
+            <div class="stat-card">
+              <small>All-Time Payout</small>
+              <h3 id="driverTotalEarnings">₹ 18,650</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ANALYTICS -->
+    <section id="analytics" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-chart-line"></i> 7-Day Ride Volume Trends</h3>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-money-bill-trend-up"></i> Revenue & Earnings Distribution</h3>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="earningsChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: EXPORT -->
+    <section id="export" class="tab-content">
+      <div class="card max-w-card">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-file-invoice"></i> Dynamic Ride History Export</h3>
+        </div>
+        <p>Download comprehensive trip statements dynamically generated by backend services (json2csv & PDFKit).</p>
+
+        <div class="export-actions">
+          <button id="btnDownloadCSV" class="btn btn-primary"><i class="fa-solid fa-file-csv"></i> Download Ride History (CSV)</button>
+          <button id="btnDownloadPDF" class="btn btn-secondary"><i class="fa-solid fa-file-pdf"></i> Download Official Statement (PDF)</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Ride-Sharing Application Backend &copy; 2026. Built with Node.js, Express, SQLite (Sequelize), Mapbox, Socket.io & PDFKit.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

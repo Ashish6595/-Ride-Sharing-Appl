@@ -1,0 +1,143 @@
+{
+  "info": {
+    "name": "Ride-Sharing Application API",
+    "description": "Postman Collection for testing all REST API endpoints of the Ride-Sharing Application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "riderToken", "value": "" },
+    { "key": "driverToken", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Rider",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aarav Mehta\",\n  \"email\": \"aarav@example.com\",\n  \"phone\": \"+919820011223\",\n  \"password\": \"rider123\",\n  \"role\": \"rider\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login Rider",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aarav@example.com\",\n  \"password\": \"rider123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rides",
+      "item": [
+        {
+          "name": "Estimate Ride & Fare",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupAddress\": \"BKC, Mumbai\",\n  \"pickupLatitude\": 19.0657,\n  \"pickupLongitude\": 72.8687,\n  \"dropoffAddress\": \"Airport T2, Mumbai\",\n  \"dropoffLatitude\": 19.0886,\n  \"dropoffLongitude\": 72.8679,\n  \"rideType\": \"economy\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/rides/estimate", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rides", "estimate"] }
+          }
+        },
+        {
+          "name": "Request Ride",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{riderToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupAddress\": \"Bandra Kurla Complex, Mumbai\",\n  \"pickupLatitude\": 19.0657,\n  \"pickupLongitude\": 72.8687,\n  \"dropoffAddress\": \"Chhatrapati Shivaji Airport, Mumbai\",\n  \"dropoffLatitude\": 19.0886,\n  \"dropoffLongitude\": 72.8679,\n  \"rideType\": \"economy\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/rides/request", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rides", "request"] }
+          }
+        },
+        {
+          "name": "Get Ride By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/rides/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rides", "1"] }
+          }
+        },
+        {
+          "name": "Filter Rides",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/rides?status=completed&page=1&limit=5", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rides"], "query": [{ "key": "status", "value": "completed" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Platform Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/overview", "host": ["{{baseUrl}}"], "path": ["api", "v1", "analytics", "overview"] }
+          }
+        },
+        {
+          "name": "Ride Trends",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/analytics/trends", "host": ["{{baseUrl}}"], "path": ["api", "v1", "analytics", "trends"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "item": [
+        {
+          "name": "Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/export/rides/csv", "host": ["{{baseUrl}}"], "path": ["api", "v1", "export", "rides", "csv"] }
+          }
+        },
+        {
+          "name": "Export PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/export/rides/pdf", "host": ["{{baseUrl}}"], "path": ["api", "v1", "export", "rides", "pdf"] }
+          }
+        }
+      ]
+    }
+  ]
+}

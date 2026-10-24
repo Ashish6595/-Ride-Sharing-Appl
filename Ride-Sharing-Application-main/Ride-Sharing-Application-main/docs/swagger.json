@@ -1,0 +1,291 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Ride-Sharing Application Backend API",
+    "version": "1.0.0",
+    "description": "Comprehensive RESTful Backend API for Ride-Sharing Application with RBAC, Mapbox Route Planning, Real-time WebSocket updates, Fare Calculation, Driver Ratings, and Analytics.",
+    "contact": {
+      "name": "Satyajit Vala",
+      "email": "student@college.edu"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT token in the format: Bearer <token>"
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "Register a new user (rider, driver, or admin)",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "phone", "password"],
+                "properties": {
+                  "name": { "type": "string", "example": "Rahul Sharma" },
+                  "email": { "type": "string", "example": "rahul@example.com" },
+                  "phone": { "type": "string", "example": "+919876543210" },
+                  "password": { "type": "string", "example": "pass1234" },
+                  "role": { "type": "string", "enum": ["rider", "driver", "admin"], "default": "rider" },
+                  "vehicleModel": { "type": "string", "example": "Hyundai Verna" },
+                  "vehiclePlate": { "type": "string", "example": "MH-02-AB-9999" },
+                  "licenseNumber": { "type": "string", "example": "DL-1420110012345" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Email already registered" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Log in and obtain JWT authorization token",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "rahul@example.com" },
+                  "password": { "type": "string", "example": "pass1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successfully authenticated" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "Get authenticated user profile",
+        "tags": ["Authentication"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "User profile fetched" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/rides/estimate": {
+      "post": {
+        "summary": "Upfront route planning and transparent fare estimation",
+        "tags": ["Rides & Fare Calculation"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pickupAddress", "pickupLatitude", "pickupLongitude", "dropoffAddress", "dropoffLatitude", "dropoffLongitude"],
+                "properties": {
+                  "pickupAddress": { "type": "string", "example": "Bandra Kurla Complex, Mumbai" },
+                  "pickupLatitude": { "type": "number", "example": 19.0657 },
+                  "pickupLongitude": { "type": "number", "example": 72.8687 },
+                  "dropoffAddress": { "type": "string", "example": "Chhatrapati Shivaji Airport T2, Mumbai" },
+                  "dropoffLatitude": { "type": "number", "example": 19.0886 },
+                  "dropoffLongitude": { "type": "number", "example": 72.8679 },
+                  "rideType": { "type": "string", "enum": ["economy", "comfort", "xl"], "default": "economy" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Route and fare breakdown calculated" }
+        }
+      }
+    },
+    "/api/v1/rides/request": {
+      "post": {
+        "summary": "Book a ride and match nearest available drivers",
+        "tags": ["Rides & Fare Calculation"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pickupAddress", "pickupLatitude", "pickupLongitude", "dropoffAddress", "dropoffLatitude", "dropoffLongitude"],
+                "properties": {
+                  "pickupAddress": { "type": "string", "example": "Andheri West Station" },
+                  "pickupLatitude": { "type": "number", "example": 19.1197 },
+                  "pickupLongitude": { "type": "number", "example": 72.8464 },
+                  "dropoffAddress": { "type": "string", "example": "Juhu Beach" },
+                  "dropoffLatitude": { "type": "number", "example": 19.0988 },
+                  "dropoffLongitude": { "type": "number", "example": 72.8264 },
+                  "rideType": { "type": "string", "enum": ["economy", "comfort", "xl"], "default": "economy" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Ride requested and nearest drivers notified" }
+        }
+      }
+    },
+    "/api/v1/rides": {
+      "get": {
+        "summary": "Search and filter ride history",
+        "tags": ["Rides & Fare Calculation"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "rideType", "in": "query", "schema": { "type": "string" } },
+          { "name": "destination", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "List of filtered rides" }
+        }
+      }
+    },
+    "/api/v1/rides/{id}/accept": {
+      "put": {
+        "summary": "Driver accepts a pending ride request",
+        "tags": ["Driver Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Ride accepted" },
+          "400": { "description": "Ride cannot be accepted" }
+        }
+      }
+    },
+    "/api/v1/rides/{id}/status": {
+      "put": {
+        "summary": "Update ride status lifecycle (arrived, in_progress, completed)",
+        "tags": ["Driver Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["arrived", "in_progress", "completed"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Status updated" }
+        }
+      }
+    },
+    "/api/v1/reviews": {
+      "post": {
+        "summary": "Submit post-ride driver rating (1-5) and review",
+        "tags": ["Driver Ratings & Reviews"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rideId", "rating"],
+                "properties": {
+                  "rideId": { "type": "integer", "example": 1 },
+                  "rating": { "type": "integer", "minimum": 1, "maximum": 5, "example": 5 },
+                  "comment": { "type": "string", "example": "Great driving, very polite!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Review created and driver rating updated" }
+        }
+      }
+    },
+    "/api/v1/analytics/overview": {
+      "get": {
+        "summary": "Platform overview metrics (revenue, total rides, active drivers)",
+        "tags": ["Analytics & Data Visualization"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Overview metrics" }
+        }
+      }
+    },
+    "/api/v1/analytics/trends": {
+      "get": {
+        "summary": "Ride volume trends over past 7 days (formatted for Chart.js)",
+        "tags": ["Analytics & Data Visualization"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Trend series" }
+        }
+      }
+    },
+    "/api/v1/analytics/earnings": {
+      "get": {
+        "summary": "Financial earnings over time",
+        "tags": ["Analytics & Data Visualization"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Earnings time series" }
+        }
+      }
+    },
+    "/api/v1/export/rides/csv": {
+      "get": {
+        "summary": "Export dynamic ride history as CSV file",
+        "tags": ["Export Ride History"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "CSV stream attachment" }
+        }
+      }
+    },
+    "/api/v1/export/rides/pdf": {
+      "get": {
+        "summary": "Export dynamic ride history as formatted PDF statement",
+        "tags": ["Export Ride History"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "PDF stream attachment" }
+        }
+      }
+    }
+  }
+}
